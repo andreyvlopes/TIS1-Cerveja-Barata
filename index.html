@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Cerveja Barata "AKI"</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" type="text/css" href="estilo.css" />
+  </head>
+  <body>
+    <!-- Cabeçalho e NavBar -->
+    <header>
+      <div id="area-cabecalho">
+        <div id="area-logo">
+          <img src="TIS.png" alt="Logo-não carregado" width="300px" />
+        </div>
+        <div id="area-menu">
+          <a href="index.html">Home</a>
+          <a href="">Quem Somos</a>
+          <a href="">Socios</a>
+          <a href="">Marcas</a>
+          <a href="">Fotos</a>
+        </div>
+      </div>
+    </header>
+
+    <!-- Content -->
+
+    <div class="container" id="cervejas">
+      <br />
+      <span>Filtros</span>
+
+      <select
+        name="filtro-cerveja"
+        id="filtro-cerveja"
+        v-model="orderByBierData"
+      >
+        <option value="">Selecione a Cerveja</option>
+
+        <option value="Skol">Skol</option>
+
+        <option value="Brahma">Brahma</option>
+
+        <option value="Heineken">Heineken</option>
+
+        <option value="Heineken, Brahma, Skol">Todas</option>
+      </select>
+
+      <select
+        name="filtro-tipo-cerveja"
+        id="filtro-tipo-cerveja"
+        v-model="orderByTypeData"
+      >
+        <option value="">Selecione o tipo</option>
+
+        <option value="garrafa">Garrafa</option>
+
+        <option value="long neck">Long Neck</option>
+
+        <option value="chop">Chop</option>
+
+        <option value="garrafa, long neck, chop">Tudo</option>
+      </select>
+      
+      <button v-on:click="applyFilters()">Aplicar Filtros</button> <br>
+
+      <h1>Bares</h1>
+
+      <div class="mostrar-cervejas">
+        <div class="bares">
+          <div
+            v-for="(bar, index) in bares"
+            :key="index"
+            class="conteudo"
+            v-if="!refresh"
+          >  <br><br>
+            
+            <div class="barName">{{bar.estabelecimento}}</div>
+            <div class="barOpen">
+              Horario de funcionamento: {{bar.horario_de_funcionamento}} <br>
+            </div>
+            <br>
+            <div class="row">
+            <div v-html="bar.mapa"></div>
+            <div><img :src="bar.image" height="300"></div>
+           </div>
+            <br>
+            <table>
+              <thead>
+                <tr>
+                  <th>Cetegoria</th>
+                  <th>Recipiente</th>
+                  <th>Marca</th>
+                  <th>Preço</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                <tr v-for="(produto, key) in bar.produtos" :key="key">
+                  <td>{{produto.categoria}}</td>
+                  <td>{{produto.recipiente}}</td>
+                  <td>{{produto.marca}}</td>
+                  <td class="col-price">R$ {{parseFloat(produto.preço).toFixed(2)}}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Script vem sempre ao final de tudo -->
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+    <script src="db.js"></script>
+    <script>
+      var app = new Vue({
+        el: "#cervejas",
+        data: {
+          bares: [],
+          orderByBierData: "",
+          orderByTypeData: "",
+          orderByPriceData: false,
+          refresh: false
+        },
+
+        created() {
+          this.getAllData();
+        },
+
+        methods: {
+          getAllData() {
+            this.refresh = true;
+            this.bares = JSON.parse(JSON.stringify(dbbares.data));
+            this.refresh = false;
+          },
+          applyFilters() {
+            let bier = this.orderByBierData;
+            let type = this.orderByTypeData;
+            let price = this.orderByPriceData;
+            if (bier != "" && type != "" && price != false) {
+              this.orderByAll(bier, type, price);
+            } else if (bier != "" && type != "") {
+              this.orderByBierAndType(bier, type);
+            } else if (bier != "" && price != false) {
+              this.orderByBierAndPrice(bier, price);
+            } else if (bier == "" && price != false && type != "") {
+              this.orderByTypeAndPrice(type, price);
+            } else if (bier != "") {
+              this.orderByBier(bier);
+            } else if (type != "") {
+              this.orderByType(type);
+            } else if (price !== false) {
+              this.orderByPrice(price);
+            } else {
+              this.getAllData();
+            }
+          },
+          orderByBier(bier) {
+            this.refresh = true;
+            this.getAllData();
+
+            if (bier != "Heineken, Brahma, Skol") {
+              for (let i = 0; i < this.bares.length; i++) {
+                this.bares[i].produtos = this.bares[i].produtos.filter(
+                  marca => {
+                    return marca.marca == bier;
+                  }
+                );
+              }
+            }
+
+            this.refresh = false;
+          },
+          orderByType(type) {
+            console.log("Por tipo");
+            this.refresh = true;
+            this.getAllData();
+
+            if (type != "garrafa, long neck, chop") {
+              for (let i = 0; i < this.bares.length; i++) {
+                this.bares[i].produtos = this.bares[i].produtos.filter(
+                  recipiente => {
+                    return recipiente.recipiente == type;
+                  }
+                );
+              }
+            }
+
+            this.refresh = false;
+          },
+          orderByPrice(price) {
+            this.refresh = true;
+            this.getAllData();
+
+            for (let i = 0; i < this.bares.length; i++) {
+              for (let j = 0; j < this.bares[i].produtos.length; j++) {
+                this.bares[i].produtos.sort(function(a, b) {
+                  return a.preço - b.preço;
+                });
+              }
+            }
+            this.refresh = false;
+          },
+          orderByAll(bier, type, price) {
+            this.refresh = true;
+            this.getAllData();
+            if (bier != "Heineken, Brahma, Skol") {
+              for (let i = 0; i < this.bares.length; i++) {
+                this.bares[i].produtos = this.bares[i].produtos.filter(
+                  marca => {
+                    return marca.marca == bier;
+                  }
+                );
+              }
+              if (type != "garrafa, long neck, chop") {
+                for (let i = 0; i < this.bares.length; i++) {
+                  this.bares[i].produtos = this.bares[i].produtos.filter(
+                    recipiente => {
+                      return recipiente.recipiente == type;
+                    }
+                  );
+                }
+                for (let i = 0; i < this.bares.length; i++) {
+                  for (let j = 0; j < this.bares[i].produtos.length; j++) {
+                    this.bares[i].produtos.sort(function(a, b) {
+                      return a.preço - b.preço;
+                    });
+                  }
+                }
+              }
+            }
+            this.refresh = false;
+          },
+          orderByBierAndType(bier, type) {
+            this.refresh = true;
+            this.getAllData();
+            if (bier != "Heineken, Brahma, Skol") {
+              for (let i = 0; i < this.bares.length; i++) {
+                this.bares[i].produtos = this.bares[i].produtos.filter(
+                  marca => {
+                    return marca.marca == bier;
+                  }
+                );
+              }
+              if (type != "garrafa, long neck, chop") {
+                for (let i = 0; i < this.bares.length; i++) {
+                  this.bares[i].produtos = this.bares[i].produtos.filter(
+                    recipiente => {
+                      return recipiente.recipiente == type;
+                    }
+                  );
+                }
+              }
+            }
+            this.refresh = false;
+          },
+          orderByBierAndPrice(bier, price) {
+            this.refresh = true;
+            this.getAllData();
+            if (bier != "Heineken, Brahma, Skol") {
+              for (let i = 0; i < this.bares.length; i++) {
+                this.bares[i].produtos = this.bares[i].produtos.filter(
+                  marca => {
+                    return marca.marca == bier;
+                  }
+                );
+              }
+              for (let i = 0; i < this.bares.length; i++) {
+                for (let j = 0; j < this.bares[i].produtos.length; j++) {
+                  this.bares[i].produtos.sort(function(a, b) {
+                    return a.preço - b.preço;
+                  });
+                }
+              }
+            }
+            this.refresh = false;
+          },
+          orderByTypeAndPrice(type, price) {
+            this.refresh = true;
+            this.getAllData();
+            if (type != "garrafa, long neck, chop") {
+              for (let i = 0; i < this.bares.length; i++) {
+                this.bares[i].produtos = this.bares[i].produtos.filter(
+                  recipiente => {
+                    return recipiente.recipiente == type;
+                  }
+                );
+              }
+              for (let i = 0; i < this.bares.length; i++) {
+                for (let j = 0; j < this.bares[i].produtos.length; j++) {
+                  this.bares[i].produtos.sort(function(a, b) {
+                    return a.preço - b.preço;
+                  });
+                }
+              }
+            }
+            this.refresh = false;
+          }
+        }
+      });
+    </script>
+  </body>
+</html>
